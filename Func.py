@@ -11,7 +11,6 @@ from sql import Sql_sand
 
 def remove_advertising(browser):
     try:
-        # time.sleep(3)
         WebDriverWait(browser, 5).until(ec.element_to_be_clickable((By.CLASS_NAME, "box_over_content")))
         browser.execute_script('''var app = document.querySelector(".sticky-wrapper");
                                   app.removeChild(app.firstChild)''')
@@ -87,36 +86,67 @@ def select_match(browser, times):
         List_need_match = list(set(List_need_match) - set(List_match_edit))
     else:
         List_match_edit = List_need_match
-    # Убираем из списка матчи которые уже есть в результатах
-    with open('List_chapter.txt', 'r', encoding='utf-8') as file1:
-        text = ' '.join(file1.read().split())
-        file1.close()
+
+    text = Sql_sand.scan_name()
+    print(text)
     for x in List_need_match:
-        if x in text:
+        if x in str(text).replace("',", ""):
+            print(x + " " + str(text).replace("',", ""))
             List_need_match.remove(x)
+    # text = Sql_sand.scan_name()
+    # for x in text:
+    #     if str(x).strip('(),').strip(chr(39)) in List_need:
+    #         print(str(x) + " НАШЕЛ!!!")
+    #         List_need.remove(str(x).strip('(),').strip(chr(39)))
+    # Убираем из списка матчи которые уже есть в результатах
+    # with open('List_chapter.txt', 'r', encoding='utf-8') as file1:
+    #     text = ' '.join(file1.read().split())
+    #     file1.close()
+    # for x in List_need_match:
+    #     if x in text:
+    #         List_need_match.remove(x)
     return List_need_match
 
 def select_match_schedule(browser):
     # time.sleep(4)
-    browser.find_element_by_xpath('//*[@id="live-table"]/div[1]/div/div[3]/div').click()
-    time.sleep(2)
+    try:
+        WebDriverWait(browser, 10).until(ec.element_to_be_clickable((By.XPATH, '//*[@id="live-table"]/div[1]/'
+                                                                               'div/div[3]/div')))
+        browser.find_element_by_xpath('//*[@id="live-table"]/div[1]/div/div[3]/div').click()
+    except selenium.common.exceptions.TimeoutException:
+        browser.refresh()
+        WebDriverWait(browser, 10).until(ec.element_to_be_clickable((By.XPATH, '//*[@id="live-table"]/div[1]/'
+                                                                               'div/div[3]/div')))
+    time.sleep(3)
+    try:
+        WebDriverWait(browser, 10).until(ec.element_to_be_clickable((By.XPATH, '//*[@id="live-table"]/div[1]/'
+                                                                               'ul/li[6]/a/div')))
+        browser.find_element_by_xpath('//*[@id="live-table"]/div[1]/ul/li[6]/a/div').click()
+    except selenium.common.exceptions.TimeoutException:
+        browser.refresh()
+        WebDriverWait(browser, 10).until(ec.element_to_be_clickable((By.XPATH, '//*[@id="live-table"]/div[1]/'
+                                                                               'ul/li[6]/a/div')))
+
+
     open_tabs_raspis(browser)
-    List_need = {}
-    List_match = browser.find_elements_by_class_name("event__match")
+    List_need = []
+    List_match = browser.find_elements_by_class_name('event__match')
+
     for x in List_match:
         if str(x.text).strip().split("\n")[0] == "Будет":
             pass
         elif str(x.text).strip().split("\n")[1] != "TKP":
-            List_need[str(x.text).strip().split("\n")[1]] = str(x.text).strip().split("\n")[0]
+            List_need.append(str(x.text).strip().split("\n")[1])
         else:
-            List_need[str(x.text).strip().split("\n")[2]] = str(x.text).strip().split("\n")[0]
+            List_need.append(str(x.text).strip().split("\n")[2])
 
-    List_need = OrderedDict(sorted(List_need.items(), key=lambda t: t[1]))
-    Library.List_need = list(List_need.values())
-    # Время и название первой команды
-    # with open('data_one.txt', 'wb') as file11:
-    #     pickle.dump(List_need, file11)
-    return List_need.keys()
+    # Отправляем sql запрос на получение списка команд
+    text = Sql_sand.scan_name()
+    for x in text:
+        if str(x).strip('(),').strip(chr(39)) in List_need:
+            print(str(x) + " НАШЕЛ!!!")
+            List_need.remove(str(x).strip('(),').strip(chr(39)))
+    return List_need
 
 def open_match(List_need_match, browser):
     # Получаем список всех матчей
@@ -165,25 +195,30 @@ def number_of_matches(browser):
     # Находим количество матчей у второй команды
     max_match_two = browser.find_elements_by_xpath('//*[@id="tab-h2h-overall"]/div[2]/table/tbody/tr').__len__()
     # Находим название первой команды
+    # all_data[0]
     try:
-        Library.name_one_team = browser.find_element_by_xpath('//*[@id="tab-h2h-overall"]/div[1]/table/tbody/tr[1]/'
-                                                      'td[@class="name highTeam"]').text
+        Library.all_data.append(browser.find_element_by_xpath('//*[@id="tab-h2h-overall"]/div[1]/table/tbody/tr[1]/'
+                                                              'td[@class="name highTeam"]').text)
     except selenium.common.exceptions.NoSuchElementException:
-        Library.name_one_team = browser.find_element_by_xpath('//*[@id="tab-h2h-overall"]/div[1]/table/tbody/tr/'
-                                                              'td[@class="name highTeam lastR"]').text
+        Library.all_data.append(browser.find_element_by_xpath('//*[@id="tab-h2h-overall"]/div[1]/table/tbody/tr/'
+                                                              'td[@class="name highTeam lastR"]').text)
 
     # Находим название второй команды
+    # all_data[1]
     try:
-        Library.name_two_team = browser.find_element_by_xpath('//*[@id="tab-h2h-overall"]/div[2]/table/tbody/tr[1]/'
-                                                      'td[@class="name highTeam"]').text
+        Library.all_data.append(browser.find_element_by_xpath('//*[@id="tab-h2h-overall"]/div[2]/table/tbody/tr[1]/'
+                                                              'td[@class="name highTeam"]').text)
     except selenium.common.exceptions.NoSuchElementException:
-        Library.name_one_team = browser.find_element_by_xpath('//*[@id="tab-h2h-overall"]/div[2]/table/tbody/tr/'
-                                                              'td[@class="name highTeam lastR"]').text
+        Library.all_data.append(browser.find_element_by_xpath('//*[@id="tab-h2h-overall"]/div[2]/table/tbody/tr/'
+                                                              'td[@class="name highTeam lastR"]').text)
 
     # Чекаем страну
-    Library.country = browser.find_element_by_xpath('//*[@id="detcon"]/div[2]/div[1]/span[2]').text
-    if browser.find_element_by_xpath('//*[@id="detcon"]/div[2]/div[1]/span[2]').text == Library.country:
-        Library.country = browser.find_element_by_xpath('//*[@id="detcon"]/div[2]/div[1]/span[2]').text
+    # all_data[2]
+    Library.all_data.append(browser.find_element_by_xpath('//*[@id="detcon"]/div[2]/div[1]/span[2]').text)
+    if browser.find_element_by_xpath('//*[@id="detcon"]/div[2]/div[1]/span[2]').text == Library.all_data[2]:
+        Library.all_data[2] = browser.find_element_by_xpath('//*[@id="detcon"]/div[2]/div[1]/span[2]').text
+    # all_data[3]
+    Library.all_data.append(str(browser.find_element_by_xpath('//*[@id="utime"]').text).split(" ")[1])
 
     if max_match_one < 5:
         number_match_one = max_match_one
@@ -195,19 +230,15 @@ def number_of_matches(browser):
     else:
         number_match_two = 5
 
-    Library.all_data.append(Library.List_need[Library.x])
-    Library.all_data.append(Library.country)
-    Library.x += 1
-    print(Library.name_one_team + " | " + Library.name_two_team)
-    analysis_one_team(browser, number_match_one, Library.name_one_team)
-    analysis_two_team(browser, number_match_two, Library.name_two_team)
+    print(Library.all_data[0] + " | " + Library.all_data[1])
+    analysis_one_team(browser, number_match_one, Library.all_data[0])
+    analysis_two_team(browser, number_match_two, Library.all_data[1])
 
 def analysis_one_team(browser, number_match, name_one_team):
     team_one_goal = 0
     team_one_missing = 0
     team_one_goal_home = 0
     team_one_goal_away = 0
-    xz =""
     for y in range(1, number_match + 1):
         while True:
             try:
@@ -223,7 +254,7 @@ def analysis_one_team(browser, number_match, name_one_team):
         try:
             WebDriverWait(browser, 15).until(ec.presence_of_element_located((By.CLASS_NAME, "detailMS")))
             if browser.find_element_by_xpath('//*[@id="flashscore"]/div[1]/div[1]/div[2]/div/div/a') \
-                    .text.find(name_one_team) == -1:
+                    .text.find(Library.all_data[0]) == -1:
                 while True:
                     try:
                         WebDriverWait(browser, 15).until(ec.element_to_be_clickable((By.XPATH,
@@ -252,13 +283,6 @@ def analysis_one_team(browser, number_match, name_one_team):
                                                                       'div[1]/div[1]/div[2]/span[2]').text)
             browser.close()
             browser.switch_to.window(browser.window_handles[-1])
-            try:
-                one = team_one_goal / team_one_missing
-            except ZeroDivisionError:
-                one = 0
-            Library.One_metod_one_team = name_one_team + " - " + str((team_one_goal / 5) * 100) + "%" + " | "
-            Library.Two_metod_one_team = name_one_team + " - " + str(round(one, 2)) + " | "
-            xz = str((team_one_goal / 5) * 100) + "%"
         except selenium.common.exceptions.NoSuchElementException:
             print("Чет не получилось )")
         except ImportError:
@@ -266,18 +290,27 @@ def analysis_one_team(browser, number_match, name_one_team):
         except selenium.common.exceptions.TimeoutException:
             browser.close()
             browser.switch_to.window(browser.window_handles[-1])
-            Library.One_metod_one_team = name_one_team + " - " + str(0) + "%" + " | "
-            Library.Two_metod_one_team = name_one_team + " - " + str(0) + " | "
+            Library.One_metod_one_team = Library.all_data[0] + " - " + str(0) + "%" + " | "
+            Library.Two_metod_one_team = Library.all_data[0] + " - " + str(0) + " | "
+            Library.all_data.append("0%")
+            Library.all_data.append("0")
 
-    Library.all_data.append(name_one_team)
-    Library.all_data.append(xz)
+    if Library.all_data.__len__() < 5:
+        try:
+            one = team_one_goal / team_one_missing
+        except ZeroDivisionError:
+            one = 0
+        Library.One_metod_one_team = Library.all_data[0] + " - " + str((team_one_goal / 5) * 100) + "%" + " | "
+        Library.Two_metod_one_team = Library.all_data[0] + " - " + str(round(one, 2)) + " | "
+        # all_data[4-5]
+        Library.all_data.append(str((team_one_goal / 5) * 100) + "%")
+        Library.all_data.append(str(round(one, 2)))
 
 def analysis_two_team(browser, number_match, name_two_team):
     team_two_goal = 0
     team_two_missing = 0
     team_two_goal_home = 0
     team_two_goal_away = 0
-    xz = ""
     for y in range(1, number_match + 1):
         while True:
             try:
@@ -293,7 +326,7 @@ def analysis_two_team(browser, number_match, name_two_team):
         try:
             WebDriverWait(browser, 15).until(ec.presence_of_element_located((By.CLASS_NAME, "detailMS")))
             if browser.find_element_by_xpath('//*[@id="flashscore"]/div[1]/div[1]/div[2]/div/div/a') \
-                    .text.find(name_two_team) == -1:
+                    .text.find(Library.all_data[1]) == -1:
                 while True:
                     try:
                         WebDriverWait(browser, 15).until(ec.element_to_be_clickable((By.XPATH,
@@ -325,13 +358,6 @@ def analysis_two_team(browser, number_match, name_two_team):
                                                                       'div[1]/div[1]/div[2]/span[2]').text)
             browser.close()
             browser.switch_to.window(browser.window_handles[-1])
-            try:
-                three = team_two_goal / team_two_missing
-            except ZeroDivisionError:
-                three = 0
-            Library.One_metod_two_team = str((team_two_goal / 5) * 100) + "%" + " - " + name_two_team
-            Library.Two_metod_two_team = str(round(three, 2)) + " - " + name_two_team + "\n"
-            xz = str((team_two_goal / 5) * 100) + "%"
         except selenium.common.exceptions.NoSuchElementException:
             print("Чет не получилось )")
         except ImportError:
@@ -342,14 +368,22 @@ def analysis_two_team(browser, number_match, name_two_team):
         except selenium.common.exceptions.TimeoutException:
             browser.close()
             browser.switch_to.window(browser.window_handles[-1])
-            Library.One_metod_two_team = str(0) + "%" + " - " + name_two_team
-            Library.Two_metod_two_team = str(0) + " - " + name_two_team + "\n"
+            Library.One_metod_two_team = "0%" + " - " + Library.all_data[1]
+            Library.Two_metod_two_team = "0" + " - " + Library.all_data[1] + "\n"
             Library.all_data.append("0%")
-            Library.all_data.append(name_two_team)
-    Library.all_data.append(xz)
-    Library.all_data.append(name_two_team)
+            Library.all_data.append("0")
+    if Library.all_data.__len__() < 8:
+        try:
+            three = team_two_goal / team_two_missing
+        except ZeroDivisionError:
+            three = 0
+        Library.One_metod_two_team = str((team_two_goal / 5) * 100) + "%" + " - " + Library.all_data[1]
+        Library.Two_metod_two_team = str(round(three, 2)) + " - " + Library.all_data[1] + "\n"
+        # all_data[6-7]
+        Library.all_data.append(str((team_two_goal / 5) * 100) + "%")
+        Library.all_data.append(str(round(three, 2)))
     if browser.find_element_by_xpath('//*[@id="tab-h2h-overall"]/div[3]/table/tbody/tr[1]').text != "Нет матчей.":
-        analysis_intramural_match(browser, Library.name_one_team, Library.name_two_team)
+        analysis_intramural_match(browser, Library.all_data[0], Library.all_data[1])
     else:
         browser.close()
         browser.switch_to.window(browser.window_handles[-1])
@@ -382,7 +416,7 @@ def analysis_intramural_match(browser, name_one_team, name_two_team):
         try:
             WebDriverWait(browser, 15).until(ec.presence_of_element_located((By.CLASS_NAME, "detailMS")))
             if browser.find_element_by_xpath('//*[@id="flashscore"]/div[1]/div[1]/div[2]/div/div/a') \
-                    .text.find(name_one_team) == -1:
+                    .text.find(Library.all_data[0]) == -1:
                 while True:
                     try:
                         WebDriverWait(browser, 15).until(ec.element_to_be_clickable((By.XPATH,
@@ -414,20 +448,6 @@ def analysis_intramural_match(browser, name_one_team, name_two_team):
             browser.close()
             browser.switch_to.window(browser.window_handles[-1])
 
-            try:
-                one = team_one_goal / team_one_missing
-            except ZeroDivisionError:
-                one = 0
-            Library.och_one = name_one_team + " - " + str((team_one_goal / 5) * 100) + "%" + " | "
-            Library.och2_one = name_one_team + " - " + str(round(one, 2)) + " | "
-            try:
-                three = team_two_goal / team_two_missing
-            except ZeroDivisionError:
-                three = 0
-            Library.och_two = str((team_two_goal / 5) * 100) + "%" + " - " + name_two_team
-            Library.och2_two = str(round(three, 2)) + " - " + name_two_team + "\n"
-
-
         except selenium.common.exceptions.NoSuchElementException:
             print("Чет не получилось )")
         except ImportError:
@@ -435,10 +455,36 @@ def analysis_intramural_match(browser, name_one_team, name_two_team):
         except selenium.common.exceptions.TimeoutException:
             browser.close()
             browser.switch_to.window(browser.window_handles[-1])
-            Library.och_one = name_one_team + " - " + str(0) + "%" + " | "
-            Library.och2_one = name_one_team + " - " + str(0) + " | "
-            Library.och_two = str(0) + "%" + " - " + name_two_team
-            Library.och2_two = str(0) + " - " + name_two_team + "\n"
+            Library.och_one = Library.all_data[0] + " - " + str(0) + "%" + " | "
+            Library.och2_one = Library.all_data[0] + " - " + str(0) + " | "
+            Library.och_two = str(0) + "%" + " - " + Library.all_data[1]
+            Library.och2_two = str(0) + " - " + Library.all_data[1] + "\n"
+            Library.all_data.append("0%")
+            Library.all_data.append("0")
+            Library.all_data.append("0%")
+            Library.all_data.append("0")
+
+    if Library.all_data.__len__() > 11:
+        pass
+    else:
+        try:
+            one = team_one_goal / team_one_missing
+        except ZeroDivisionError:
+            one = 0
+        Library.och_one = Library.all_data[0] + " - " + str((team_one_goal / 5) * 100) + "%" + " | "
+        Library.och2_one = Library.all_data[0] + " - " + str(round(one, 2)) + " | "
+
+        Library.all_data.append(str((team_one_goal / 5) * 100) + "%")
+        Library.all_data.append(str(round(one, 2)))
+        try:
+            three = team_two_goal / team_two_missing
+        except ZeroDivisionError:
+            three = 0
+        Library.och_two = str((team_two_goal / 5) * 100) + "%" + " - " + Library.all_data[1]
+        Library.och2_two = str(round(three, 2)) + " - " + Library.all_data[1] + "\n"
+        # all_data[8-11]
+        Library.all_data.append(str((team_two_goal / 5) * 100) + "%")
+        Library.all_data.append(str(round(three, 2)))
     browser.close()
     browser.switch_to.window(browser.window_handles[-1])
     write_to_file(Library.One_metod_one_team, Library.One_metod_two_team,
@@ -448,30 +494,26 @@ def analysis_intramural_match(browser, name_one_team, name_two_team):
 
 def write_to_file(One_metod_one_team, One_metod_two_team, Two_metod_one_team, Two_metod_two_team,
                   och_one, och2_one, och_two, och2_two):
-    Sql_sand.paste_info(str(Library.all_data[0]), Library.all_data[1], Library.all_data[2],
-                        Library.all_data[3], Library.all_data[4], Library.all_data[5])
-    Library.all_data.clear()
+    print(Library.all_data)
+    Sql_sand.isert_one_team(Library.all_data[3], Library.all_data[2], Library.all_data[0],
+                            Library.all_data[4], Library.all_data[5])
+    Sql_sand.isert_two_team(Library.all_data[3], Library.all_data[2], Library.all_data[1],
+                            Library.all_data[6], Library.all_data[7])
+    if Library.all_data.__len__() > 10:
+        Sql_sand.isert_intramural_one_team(Library.all_data[2], Library.all_data[0],
+                                           Library.all_data[8], Library.all_data[9])
+        Sql_sand.isert_intramural_two_team(Library.all_data[2], Library.all_data[1],
+                                           Library.all_data[10], Library.all_data[11])
+
     if och_one == "":
-        The_end = []
-        The_end.append(Library.country + "\n" + One_metod_one_team + One_metod_two_team)
-        The_end.append(Two_metod_one_team + Two_metod_two_team)
-        Bot_telegram.send_match(Library.country + "\n" + One_metod_one_team + One_metod_two_team + "\n" +
+        Bot_telegram.send_match(Library.all_data[2] + "\n" + Library.all_data[3] + "\n" + One_metod_one_team + One_metod_two_team + "\n" +
                                 Two_metod_one_team + Two_metod_two_team, Library.url_ifo)
-        with open('List_chapter.txt', 'a', encoding='utf-8') as file11:
-            file11.writelines("%s\n" % place for place in The_end)
-        The_end.clear()
     else:
-        The_end = []
-        The_end.append(Library.country + "\n" + One_metod_one_team + One_metod_two_team + "\n" +
-                       Two_metod_one_team + Two_metod_two_team + "Очные встречи:" + "\n" + och_one +
-                       och_two + "\n" + och2_one + och2_two)
-        Bot_telegram.send_match(Library.country + "\n" + One_metod_one_team + One_metod_two_team + "\n" +
+        Bot_telegram.send_match(Library.all_data[2] + "\n" + Library.all_data[3] + "\n" + One_metod_one_team + One_metod_two_team + "\n" +
                                 Two_metod_one_team + Two_metod_two_team + "Очные встречи:" + "\n" + och_one + och_two +
                                 "\n" + och2_one + och2_two, Library.url_ifo)
-        with open('List_chapter.txt', 'a', encoding='utf-8') as file11:
-            file11.writelines("%s\n" % place for place in The_end)
-        The_end.clear()
-        Library.och_one = ""
-        Library.och2_one = ""
-        Library.och_two = ""
-        Library.och2_two = ""
+    Library.och_one = ""
+    Library.och2_one = ""
+    Library.och_two = ""
+    Library.och2_two = ""
+    Library.all_data.clear()
