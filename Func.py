@@ -1,8 +1,4 @@
 import selenium
-import pickle
-import time
-from selenium.webdriver import ActionChains
-from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.wait import WebDriverWait
@@ -10,6 +6,8 @@ import Library
 import time
 import Bot_telegram
 from collections import OrderedDict
+from sql import Sql_sand
+
 
 def remove_advertising(browser):
     try:
@@ -209,6 +207,7 @@ def analysis_one_team(browser, number_match, name_one_team):
     team_one_missing = 0
     team_one_goal_home = 0
     team_one_goal_away = 0
+    xz =""
     for y in range(1, number_match + 1):
         while True:
             try:
@@ -259,7 +258,7 @@ def analysis_one_team(browser, number_match, name_one_team):
                 one = 0
             Library.One_metod_one_team = name_one_team + " - " + str((team_one_goal / 5) * 100) + "%" + " | "
             Library.Two_metod_one_team = name_one_team + " - " + str(round(one, 2)) + " | "
-
+            xz = str((team_one_goal / 5) * 100) + "%"
         except selenium.common.exceptions.NoSuchElementException:
             print("Чет не получилось )")
         except ImportError:
@@ -269,17 +268,16 @@ def analysis_one_team(browser, number_match, name_one_team):
             browser.switch_to.window(browser.window_handles[-1])
             Library.One_metod_one_team = name_one_team + " - " + str(0) + "%" + " | "
             Library.Two_metod_one_team = name_one_team + " - " + str(0) + " | "
-            Library.all_data.append(name_one_team)
-            Library.all_data.append("0%")
-            
+
     Library.all_data.append(name_one_team)
-    Library.all_data.append(str((team_one_goal / 5) * 100) + "%")
+    Library.all_data.append(xz)
 
 def analysis_two_team(browser, number_match, name_two_team):
     team_two_goal = 0
     team_two_missing = 0
     team_two_goal_home = 0
     team_two_goal_away = 0
+    xz = ""
     for y in range(1, number_match + 1):
         while True:
             try:
@@ -333,8 +331,7 @@ def analysis_two_team(browser, number_match, name_two_team):
                 three = 0
             Library.One_metod_two_team = str((team_two_goal / 5) * 100) + "%" + " - " + name_two_team
             Library.Two_metod_two_team = str(round(three, 2)) + " - " + name_two_team + "\n"
-            Library.all_data.append(str((team_two_goal / 5) * 100) + "%")
-            Library.all_data.append(name_two_team)
+            xz = str((team_two_goal / 5) * 100) + "%"
         except selenium.common.exceptions.NoSuchElementException:
             print("Чет не получилось )")
         except ImportError:
@@ -349,6 +346,8 @@ def analysis_two_team(browser, number_match, name_two_team):
             Library.Two_metod_two_team = str(0) + " - " + name_two_team + "\n"
             Library.all_data.append("0%")
             Library.all_data.append(name_two_team)
+    Library.all_data.append(xz)
+    Library.all_data.append(name_two_team)
     if browser.find_element_by_xpath('//*[@id="tab-h2h-overall"]/div[3]/table/tbody/tr[1]').text != "Нет матчей.":
         analysis_intramural_match(browser, Library.name_one_team, Library.name_two_team)
     else:
@@ -449,8 +448,9 @@ def analysis_intramural_match(browser, name_one_team, name_two_team):
 
 def write_to_file(One_metod_one_team, One_metod_two_team, Two_metod_one_team, Two_metod_two_team,
                   och_one, och2_one, och_two, och2_two):
-    print(Library.all_data)
-
+    Sql_sand.paste_info(str(Library.all_data[0]), Library.all_data[1], Library.all_data[2],
+                        Library.all_data[3], Library.all_data[4], Library.all_data[5])
+    Library.all_data.clear()
     if och_one == "":
         The_end = []
         The_end.append(Library.country + "\n" + One_metod_one_team + One_metod_two_team)
