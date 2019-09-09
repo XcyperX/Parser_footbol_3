@@ -26,7 +26,12 @@ def scan_name():
     cursor.execute("SELECT name_one_team FROM one_team_info;")
     y = cursor.fetchall()
     return y
-
+def analysis(x):
+    cursor.execute(f"INSERT INTO analysis SELECT one_team_info.one_result, one_team_info.two_result, two_team_info.one_result, two_team_info.two_result "
+                   f"FROM one_team_info "
+                   f"JOIN two_team_info ON one_team_info.id = two_team_info.id "
+                   f"WHERE name_one_team = '{x}'")
+    conn.commit()
 # conn.commit() # <--- makes sure the change is shown in the database
 # conn.close()
 # cursor.close()

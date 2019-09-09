@@ -5,7 +5,6 @@ from selenium.webdriver.support.wait import WebDriverWait
 import Library
 import time
 import Bot_telegram
-from collections import OrderedDict
 from sql import Sql_sand
 
 
@@ -68,9 +67,8 @@ def open_tabs_raspis(browser):
     browser.execute_script("window.scrollTo(0, 0)")
 
 # Сбор необходимых матчей
-def select_match(browser, times):
+def select_match(browser):
     List_match = browser.find_elements_by_class_name("event__match")
-    List_match_edit = []
     List_need_match = []
     for x in List_match:
         try:
@@ -81,30 +79,11 @@ def select_match(browser, times):
                 List_need_match.append(str(x.text).strip().split("\n")[1])
         except ValueError:
             pass
-    # Убираем из списка метчи найденные в первом прогоне
-    if times >= 2:
-        List_need_match = list(set(List_need_match) - set(List_match_edit))
-    else:
-        List_match_edit = List_need_match
-
     text = Sql_sand.scan_name()
-    print(text)
-    for x in List_need_match:
-        if x in str(text).replace("',", ""):
-            print(x + " " + str(text).replace("',", ""))
-            List_need_match.remove(x)
-    # text = Sql_sand.scan_name()
-    # for x in text:
-    #     if str(x).strip('(),').strip(chr(39)) in List_need:
-    #         print(str(x) + " НАШЕЛ!!!")
-    #         List_need.remove(str(x).strip('(),').strip(chr(39)))
-    # Убираем из списка матчи которые уже есть в результатах
-    # with open('List_chapter.txt', 'r', encoding='utf-8') as file1:
-    #     text = ' '.join(file1.read().split())
-    #     file1.close()
-    # for x in List_need_match:
-    #     if x in text:
-    #         List_need_match.remove(x)
+    for x in text:
+        if str(x).strip('(),').strip(chr(39)) in List_need_match:
+            print(str(x) + " НАШЕЛ!!!")
+            List_need_match.remove(str(x).strip('(),').strip(chr(39)))
     return List_need_match
 
 def select_match_schedule(browser):
@@ -231,10 +210,10 @@ def number_of_matches(browser):
         number_match_two = 5
 
     print(Library.all_data[0] + " | " + Library.all_data[1])
-    analysis_one_team(browser, number_match_one, Library.all_data[0])
-    analysis_two_team(browser, number_match_two, Library.all_data[1])
+    analysis_one_team(browser, number_match_one)
+    analysis_two_team(browser, number_match_two)
 
-def analysis_one_team(browser, number_match, name_one_team):
+def analysis_one_team(browser, number_match):
     team_one_goal = 0
     team_one_missing = 0
     team_one_goal_home = 0
@@ -290,8 +269,8 @@ def analysis_one_team(browser, number_match, name_one_team):
         except selenium.common.exceptions.TimeoutException:
             browser.close()
             browser.switch_to.window(browser.window_handles[-1])
-            Library.One_metod_one_team = Library.all_data[0] + " - " + str(0) + "%" + " | "
-            Library.Two_metod_one_team = Library.all_data[0] + " - " + str(0) + " | "
+            Library.One_metod_one_team = Library.all_data[0] + " - " + "0%" + " | "
+            Library.Two_metod_one_team = Library.all_data[0] + " - " + "0 | "
             Library.all_data.append("0%")
             Library.all_data.append("0")
 
@@ -306,7 +285,7 @@ def analysis_one_team(browser, number_match, name_one_team):
         Library.all_data.append(str((team_one_goal / 5) * 100) + "%")
         Library.all_data.append(str(round(one, 2)))
 
-def analysis_two_team(browser, number_match, name_two_team):
+def analysis_two_team(browser, number_match):
     team_two_goal = 0
     team_two_missing = 0
     team_two_goal_home = 0
@@ -383,7 +362,7 @@ def analysis_two_team(browser, number_match, name_two_team):
         Library.all_data.append(str((team_two_goal / 5) * 100) + "%")
         Library.all_data.append(str(round(three, 2)))
     if browser.find_element_by_xpath('//*[@id="tab-h2h-overall"]/div[3]/table/tbody/tr[1]').text != "Нет матчей.":
-        analysis_intramural_match(browser, Library.all_data[0], Library.all_data[1])
+        analysis_intramural_match(browser)
     else:
         browser.close()
         browser.switch_to.window(browser.window_handles[-1])
@@ -391,7 +370,7 @@ def analysis_two_team(browser, number_match, name_two_team):
                       Library.Two_metod_one_team, Library.Two_metod_two_team,
                       Library.och_one, Library.och2_one, Library.och_two, Library.och2_two)
 
-def analysis_intramural_match(browser, name_one_team, name_two_team):
+def analysis_intramural_match(browser):
     team_one_goal = 0
     team_one_missing = 0
     team_two_goal = 0

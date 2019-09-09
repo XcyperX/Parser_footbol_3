@@ -1,6 +1,5 @@
 import Library
 import Func
-import analysis
 import time
 import selenium
 
@@ -11,16 +10,16 @@ Func.remove_advertising(Library.browser)
 Library.time_match = 23
 # Написать "LIVE" для парсинга лайв матчей. По умолчанию пасинг происходит по "Расписание"
 Library.Select = ""
-for times in range(100):
+x = 0
+
+if Library.Select != "LIVE":
     try:
-        # analysis.click_completed(Library.browser)
-        if Library.Select == "LIVE":
-            Func.open_tabs(Library.browser)
-            Func.open_match(Func.select_match(Library.browser, times), Library.browser)
-        else:
-            Func.open_match(Func.select_match_schedule(Library.browser), Library.browser)
-        Library.x = 0
-        print("Цикл пройден!")
-        time.sleep(150)
+        Func.open_match(Func.select_match_schedule(Library.browser), Library.browser)
     except selenium.common.exceptions.StaleElementReferenceException:
-        print("Чет ошибка..")
+        pass
+else:
+    while x < 10:
+        Func.open_tabs(Library.browser)
+        Func.open_match(Func.select_match(Library.browser), Library.browser)
+        print("Цикл пройден")
+        time.sleep(150)
